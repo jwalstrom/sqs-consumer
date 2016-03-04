@@ -97,6 +97,20 @@ Consumer.prototype.stop = function () {
   this.stopped = true;
 };
 
+Consumer.prototype.deleteMessage = function (message, cb) {
+  var deleteParams = {
+    QueueUrl: this.queueUrl,
+    ReceiptHandle: message.ReceiptHandle
+  };
+
+  debug('Deleting message %s', message.MessageId);
+  this.sqs.deleteMessage(deleteParams, function (err) {
+    if (err) return cb(new SQSError('SQS delete message failed: ' + err.message));
+
+    cb();
+  });
+};
+
 Consumer.prototype._poll = function () {
   var receiveParams = {
     QueueUrl: this.queueUrl,
@@ -147,7 +161,7 @@ Consumer.prototype._processMessage = function (message, cb) {
       consumer.handleMessage(message, done);
     },
     function deleteMessage(done) {
-      consumer._deleteMessage(message, done);
+      consumer.deleteMessage(message, done);
     }
   ], function (err) {
     if (err) {
@@ -163,18 +177,6 @@ Consumer.prototype._processMessage = function (message, cb) {
   });
 };
 
-Consumer.prototype._deleteMessage = function (message, cb) {
-  var deleteParams = {
-    QueueUrl: this.queueUrl,
-    ReceiptHandle: message.ReceiptHandle
-  };
 
-  debug('Deleting message %s', message.MessageId);
-  this.sqs.deleteMessage(deleteParams, function (err) {
-    if (err) return cb(new SQSError('SQS delete message failed: ' + err.message));
-
-    cb();
-  });
-};
 
 module.exports = Consumer;
